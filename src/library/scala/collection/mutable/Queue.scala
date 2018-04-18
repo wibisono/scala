@@ -115,6 +115,14 @@ class Queue[A] protected (array: Array[AnyRef], start: Int, end: Int)
     res.result()
   }
 
+  def dequeueAP(p: A => Boolean): scala.collection.immutable.Seq[A] = {
+    val (res, rem) = partition(p)
+    this.clear
+    this ++= rem
+    res.toSeq
+  }
+
+
   /** Returns the first element in the queue, or throws an error if there
     *  is no element contained in the queue.
     *
