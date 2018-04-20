@@ -130,15 +130,20 @@ trait MapOps[K, V, +CC[X, Y] <: MapOps[X, Y, CC, _], +C <: MapOps[K, V, CC, C]]
 
   def flatMapInPlace(f: ((K, V)) => IterableOnce[(K, V)]): this.type = {
     val toAdd = Map[K, V]()
-    val toRemove = Set[K]()
-    for (elem <- this)
-      for (mapped <- f(elem).iterator())
-        if (!contains(mapped._1)) {
+    val toKeep = Map[K, V]()
+    for (elem <- this) {
+      for (mapped <- f(elem).iterator()){
+        val (k,v) = mapped
+        if (contains(k) && this(k) == v) {
+          toKeep += mapped 
+        } else {
           toAdd += mapped
-          toRemove -= elem._1
         }
-    for (elem <- toRemove) coll -= elem
-    for (elem <- toAdd) coll += elem
+      }
+    }
+    coll.clear()
+    coll ++= toKeep 
+    coll ++= toAdd
     this
   }
 
