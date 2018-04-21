@@ -128,25 +128,44 @@ trait MapOps[K, V, +CC[X, Y] <: MapOps[X, Y, CC, _], +C <: MapOps[K, V, CC, C]]
     this
   }
 
-  def flatMapInPlace(f: ((K, V)) => IterableOnce[(K, V)]): this.type = {
+ def flatMapInPlace(f: ((K, V)) => IterableOnce[(K, V)]): this.type = {
+    val toUpsert = Map[K, V]()
+    val toRemove = Set[K]()
+    toRemove ++= keys
+
+    for (elem <- this) {
+      for ((k,v) <- f(elem).iterator()){
+        if (contains(k) && this(k) == v) {
+          toRemove -= k 
+        } else {
+          toUpsert += ((k,v)) 
+        }
+      }
+    }
+    coll --= toRemove
+    coll ++= toUpsert
+    this
+  }
+
+  def flatMapInPlace1(f: ((K, V)) => IterableOnce[(K, V)]): this.type = {
     val toAdd = Map[K, V]()
     val toKeep = Map[K, V]()
     for (elem <- this) {
-      for (mapped <- f(elem).iterator()){
-        val (k,v) = mapped
+      for ((k,v) <- f(elem).iterator()){
         if (contains(k) && this(k) == v) {
-          toKeep += mapped 
+          toKeep += ((k,v)) 
         } else {
-          toAdd += mapped
+          toAdd += ((k,v)) 
         }
       }
     }
     coll.clear()
-    coll ++= toKeep 
+    coll ++= toKeep
     coll ++= toAdd
     this
   }
 
+ 
   def filterInPlace(p: ((K, V)) => Boolean): this.type = {
     val toRemove = Set[K]()
     for (elem <- this)
